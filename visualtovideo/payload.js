@@ -1,119 +1,112 @@
-
-let TEXT_SCENES = [
+const TEXT_SCENES = [
     'Jacobin sympathisers viewed the Directory as a betrayal of the Revolution, while Bonapartists later justified.',
     'With Royalists apparently on the verge of power, Republicans attempted a pre-emptive coup on 4 September.'
-  ];
-let videoURI="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"  
+];
+const videoURI = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";  
 
+/**
+ * Создает полезную нагрузку для токена аутентификации.
+ * @param {string} clientId - Идентификатор клиента.
+ * @param {string} clientSecret - Секрет клиента.
+ * @returns {object} - Полезная нагрузка токена.
+ * @throws {Error} - Если clientId или clientSecret не переданы.
+ */
 function createAuthTokenPayload(clientId, clientSecret) {
-  return {
-    client_id: clientId,
-    client_secret: clientSecret
-  };
+    if (!clientId || !clientSecret) {
+        throw new Error("clientId и clientSecret должны быть указаны.");
+    }
+    return {
+        client_id: clientId,
+        client_secret: clientSecret
+    };
 }
 
-function createBackgroundVideoSegments(start,end) {
-    const backgroundVideoSegments = [{
-      start: start,
-      end: end
-    }];
-    return backgroundVideoSegments;
-  }
-  // This function creates scene object used in scenes array
-  function createSceneObject(text,counter,videoUri=videoURI, fontFamily = 'Roboto', textColor = '#00FF00', fontSize = 32, textBackgroundColor = '#000000', voiceOver = true, splitTextOnNewLine = false, splitTextOnPeriod = true,backgroundType="video") {
-    let start=counter*5
-    let end=counter*5+5
-    let backgroundVideoSegments=createBackgroundVideoSegments(start,end)
-    return {
-      text: text,
-      backgroundUri:videoUri,
-      backgroundType:backgroundType,
-      fontFamily: fontFamily,
-      textColor: textColor,
-      fontSize: fontSize,
-      textBackgroundColor: textBackgroundColor,
-      voiceOver: voiceOver,
-      splitTextOnNewLine: splitTextOnNewLine,
-      splitTextOnPeriod: splitTextOnPeriod,
-      backgroundVideoSegments:backgroundVideoSegments
-    };
-  }
-  
-  // This function creates aivoiceover object used in audio object
-  function createAIVoiceoverObject(speaker = 'Jackson', speed = 100, amplifyLevel = 0) {
-    return {
-      speaker: speaker,
-      speed: speed,
-      amplifyLevel: amplifyLevel
-    };
-  }
-  
-  function createAudioObject(aiVoiceOver, autoBackgroundMusic = 'true', backgroundMusicVolume = 0.5) {
-    return {
-      autoBackgroundMusic: autoBackgroundMusic,
-      backGroundMusicVolume: backgroundMusicVolume,
-      aiVoiceOver: aiVoiceOver
-    };
-  }
-
-  // This function creates scenes object used in storyboard payload
-  function createScenes(textList) {
-    let scenes = [];
-    let i=0;
-    for (let text of textList) {
-      let scene = createSceneObject(text,i);
-      scenes.push(scene);
-      i++;
+/**
+ * Создает сегменты видео фона.
+ * @param {number} start - Начальное время.
+ * @param {number} end - Конечное время.
+ * @returns {Array} - Массив сегментов видео.
+ * @throws {Error} - Если start или end не являются числами.
+ */
+function createBackgroundVideoSegments(start, end) {
+    if (typeof start !== 'number' || typeof end !== 'number') {
+        throw new Error("start и end должны быть числами.");
     }
-    return scenes;
-  }
+    return [{ start, end }];
+}
 
-// This function creates storyboard payload
-function createStoryboardPayload() {
-    let payload = {};
-    let aivoiceover = createAIVoiceoverObject();
-    let audio = createAudioObject(aivoiceover);
-    let scenes = createScenes(TEXT_SCENES);
-    payload.videoName = 'VisualToVideo';
-    payload.videoDescription = 'VisualToVideo';
-    payload.language = 'en';
-    payload.audio = audio;
-    payload.scenes = scenes;
-    return payload;
-  }
+/**
+ * Создает объект сцены.
+ * @param {string} text - Текст сцены.
+ * @param {number} counter - Индекс сцены.
+ * @param {string} videoUri - URI видео.
+ * @param {string} fontFamily - Шрифт текста.
+ * @param {string} textColor - Цвет текста.
+ * @param {number} fontSize - Размер шрифта.
+ * @param {string} textBackgroundColor - Цвет фона текста.
+ * @param {boolean} voiceOver - Использовать ли голосовое сопровождение.
+ * @param {boolean} splitTextOnPeriod - Разделять ли текст по точкам.
+ * @param {string} backgroundType - Тип фона.
+ * @returns {object} - Объект сцены.
+ * @throws {Error} - Если текст сцены пустой.
+ */
+function createSceneObject(text, counter, videoUri = videoURI, fontFamily = 'Roboto', textColor = '#00FF00', fontSize = 32, textBackgroundColor = '#000000', voiceOver = true, splitTextOnPeriod = true, backgroundType = "video") {
+    if (!text) {
+        throw new Error("Текст сцены не может быть пустым.");
+    }
+    
+    const start = counter * 5;
+    const end = start + 5;
+    const backgroundVideoSegments = createBackgroundVideoSegments(start, end);
+    
+    return {
+        text,
+        backgroundUri: videoUri,
+        backgroundType,
+        fontFamily,
+        textColor,
+        fontSize,
+        textBackgroundColor,
+        voiceOver,
+        splitTextOnPeriod,
+        backgroundVideoSegments
+    };
+}
 
-  // This function sets headers
-  function setHeaders(token, userId) {
-    let headers = {};
-    headers.Authorization = token;
-    headers['X-Pictory-User-Id'] = userId;
-    headers['Content-Type'] = 'application/json';
-    return headers;
-  }
-  
-  // This function sets headers for auth request
-  function setAuthHeaders() {
-    let headers = {};
-    headers['Content-Type'] = 'application/json';
-    return headers;
-  }
-  
-  // This function creates render payload
-  function createRenderPayload(audio, output, scenes) {
-    let payload = {};
-    payload.audio = audio;
-    payload.output = output;
-    payload.scenes = scenes;
-    payload.next_generation_video = true;
-    payload.containsTextToImage = true;
-    return payload;
-  }
-  
+/**
+ * Создает объект голосового сопровождения AI.
+ * @param {string} speaker - Имя говорящего.
+ * @param {number} speed - Скорость речи.
+ * @param {number} amplifyLevel - Уровень усиления.
+ * @returns {object} - Объект голосового сопровождения.
+ */
+function createAIVoiceoverObject(speaker = 'Jackson', speed = 100, amplifyLevel = 0) {
+    return {
+        speaker,
+        speed,
+        amplifyLevel
+    };
+}
 
-module.exports={
-    createStoryboardPayload,
-    createRenderPayload,
-    setAuthHeaders,
-    setHeaders,
-    createAuthTokenPayload
-}    
+/**
+ * Создает объект аудио.
+ * @param {object} aiVoiceOver - Объект голосового сопровождения.
+ * @param {boolean} autoBackgroundMusic - Использовать ли фоновую музыку.
+ * @param {number} backgroundMusicVolume - Уровень громкости фоновой музыки.
+ * @returns {object} - Объект аудио.
+ */
+function createAudioObject(aiVoiceOver, autoBackgroundMusic = true, backgroundMusicVolume = 0.5) {
+    return {
+        autoBackgroundMusic,
+        backGroundMusicVolume: backgroundMusicVolume,
+        aiVoiceOver
+    };
+}
+
+/**
+ * Создает массив сцен из списка текстов.
+ * @param {Array} textList - Список текстов для сцен.
+ * @returns {Array} - Массив объектов сцен.
+ * @throws {Error} - Если textList не является массивом или пустым.
+ */
+function
